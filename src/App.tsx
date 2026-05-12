@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { supabase } from './supabaseClient';
 import { 
   LayoutDashboard, Database, Wallet, Scale, Wrench, History, 
   FileInput, FileOutput, Fuel, Users, LogOut, Bell, Check, 
@@ -455,6 +456,45 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<string>('login');
   const [users, setUsers] = useState<User[]>(initialUsers);
   const [equipments, setEquipments] = useState<Equipment[]>([]);
+
+  // Supabase Data Fetching
+  useEffect(() => {
+    async function loadData() {
+      // Carregar Equipamentos
+      const { data: eqData } = await supabase.from('equipamentos').select('*').order('id', { ascending: false });
+      if (eqData) setEquipments(eqData as any);
+
+      // Carregar Usuários (se a tabela existir)
+      const { data: uData } = await supabase.from('users').select('*');
+      if (uData && uData.length > 0) {
+        // Mapear para o formato local
+        const mappedUsers = uData.map((u: any) => ({
+          id: u.id,
+          username: u.username,
+          password: u.password,
+          role: u.role,
+          status: u.status || 'pending',
+          name: u.name,
+          email: u.email,
+          funcao: u.funcao,
+          avatar: u.avatar,
+          createdAt: u.created_at
+        }));
+        setUsers(mappedUsers);
+      }
+
+      // Carregar Abastecimentos
+      const { data: absData } = await supabase.from('abastecimentos').select('*').order('id', { ascending: false });
+      if (absData) {
+        const mappedAbs = absData.map((a: any) => ({
+            ...a,
+            rateioInfo: a.rateio_info ? JSON.parse(a.rateio_info) : undefined
+        }));
+        setAbastecimentos(mappedAbs as any);
+      }
+    }
+    loadData();
+  }, []);
   const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null);
   const [rateios, setRateios] = useState<Rateio[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
@@ -721,23 +761,34 @@ export default function App() {
   };
 
   // Add equipment
-  const handleAddEquipment = (equipment: Omit<Equipment, 'id' | 'createdAt'>) => {
-    const newEquipment: Equipment = {
+  const handleAddEquipment = async (equipment: Omit<Equipment, 'id' | 'createdAt'>) => {
+    const newEquipment = {
       ...equipment,
       equipment: cleanText(equipment.equipment),
       plate: cleanText(equipment.plate),
-      ccNovo: equipment.ccNovo.map(cleanText),
+      cc_novo: equipment.ccNovo.map(cleanText), // Mapear para nome da coluna no banco
       gerencia: cleanText(equipment.gerencia),
-      areaLotacao: cleanText(equipment.areaLotacao),
+      area_lotacao: cleanText(equipment.areaLotacao),
       area: cleanText(equipment.area),
       fornecedor: cleanText(equipment.fornecedor),
-      id: Date.now(),
-      createdAt: new Date().toISOString()
+      created_at: new Date().toISOString()
     };
-    setEquipments(prev => [...prev, newEquipment]);
-    setDatabaseTab('equipamentos');
-    setCurrentPage('database');
-    addNotification('success', 'Equipamento cadastrado! Veja na Base de Dados › Equipamentos Cadastrados.');
+
+    // Inserir no Supabase
+    const { data, error } = await supabase
+      .from('equipamentos')
+      .insert([newEquipment])
+      .select();
+
+    if (data && !error) {
+      setEquipments(prev => [...prev, data[0] as any]);
+      setDatabaseTab('equipamentos');
+      setCurrentPage('database');
+      addNotification('success', 'Equipamento salvo no banco com sucesso!');
+    } else {
+      addNotification('error', 'Erro ao salvar equipamento no banco.');
+      console.error(error);
+    }
   };
 
   const handleUpdateEquipment = (equipment: Omit<Equipment, 'id' | 'createdAt'>) => {
@@ -802,44 +853,60 @@ export default function App() {
   };
 
   // Add abastecimento
-  const handleAddAbastecimento = (abastecimento: Omit<Abastecimento, 'id' | 'createdAt' | 'valor' | 'createdBy'>) => {
+  const handleAddAbastecimento = async (abastecimento: Omit<Abastecimento, 'id' | 'createdAt' | 'valor' | 'createdBy'>) => {
     const valor = abastecimento.litros * dieselPrice.price;
-    const newAbastecimento: Abastecimento = {
+    const newAbastecimento = {
       ...abastecimento,
-      ccNovo: cleanText(abastecimento.ccNovo),
+      cc_novo: cleanText(abastecimento.ccNovo),
       diretoria: cleanText(abastecimento.diretoria),
       gerencia: cleanText(abastecimento.gerencia),
-      areaLotacao: cleanText(abastecimento.areaLotacao),
+      area_lotacao: cleanText(abastecimento.areaLotacao),
       fornecedor: cleanText(abastecimento.fornecedor),
       equipamento: cleanText(abastecimento.equipamento),
       area: cleanText(abastecimento.area),
       semana: cleanText(abastecimento.semana) || deriveWeekLabel(abastecimento.data),
       data: normalizeDateValue(abastecimento.data),
       observacoes: cleanText(abastecimento.observacoes || ''),
-      rateioInfo: abastecimento.rateioInfo
-        ? {
-            ...abastecimento.rateioInfo,
-            gerenciaRateio: cleanText(abastecimento.rateioInfo.gerenciaRateio || ''),
-            ccRateio: cleanText(abastecimento.rateioInfo.ccRateio || ''),
-          }
-        : undefined,
-      id: Date.now(),
+      rateio_info: abastecimento.rateioInfo ? JSON.stringify(abastecimento.rateioInfo) : null,
       valor,
-      createdBy: cleanText(currentUser?.name || 'Unknown'),
-      createdAt: new Date().toISOString()
+      created_by: cleanText(currentUser?.name || 'Unknown'),
+      created_at: new Date().toISOString()
     };
-    setAbastecimentos(prev => [...prev, newAbastecimento]);
-    
-    // Update budget realizado
-    if (newAbastecimento.diretoria) {
-      setBudgets(prev => prev.map(b => 
-        b.diretoria === newAbastecimento.diretoria 
-          ? { ...b, realizado: b.realizado + valor }
-          : b
-      ));
+
+    // Inserir no Supabase
+    const { data, error } = await supabase
+      .from('abastecimentos')
+      .insert([newAbastecimento])
+      .select();
+
+    if (data && !error) {
+      const dbRecord = data[0];
+      // Ajustar formato para o estado local
+      const localRecord = {
+          ...dbRecord,
+          rateioInfo: dbRecord.rateio_info ? JSON.parse(dbRecord.rateio_info) : undefined,
+          ccNovo: dbRecord.cc_novo,
+          areaLotacao: dbRecord.area_lotacao,
+          createdBy: dbRecord.created_by,
+          createdAt: dbRecord.created_at
+      };
+
+      setAbastecimentos(prev => [localRecord, ...prev]);
+      
+      // Update budget realizado
+      if (localRecord.diretoria) {
+        setBudgets(prev => prev.map(b => 
+          b.diretoria === localRecord.diretoria 
+            ? { ...b, realizado: b.realizado + valor }
+            : b
+        ));
+      }
+      
+      addNotification('success', 'Abastecimento salvo no banco com sucesso!');
+    } else {
+      addNotification('error', 'Erro ao salvar abastecimento no banco.');
+      console.error(error);
     }
-    
-    addNotification('success', 'Abastecimento registrado com sucesso! Dashboard atualizado automaticamente.');
   };
 
   // Update diesel price
@@ -1515,12 +1582,8 @@ export default function App() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-         
+          {/* ESPAÇO PARA A LOGO — substitua por: <img src="/sua-logo.png" alt="Logo" className="h-full w-full object-contain" /> */}
           <div className="mx-auto mb-6 flex h-20 w-full max-w-72 items-center justify-center rounded-2xl bg-white shadow-lg">
-           <img src="/logo.png" 
-            alt="Logo" 
-            className="h-full w-full object-contain" 
-            />
           </div>
           <p className="text-lg text-slate-300">Controle de Abastecimento</p>
           <p className="text-sm text-slate-400">Sistema Corporativo de Gestão de Combustível</p>
@@ -5072,11 +5135,6 @@ export default function App() {
           <div className="border-b border-slate-800 px-5 py-5">
             {/* ESPAÇO PARA A LOGO — substitua por: <img src="/sua-logo.png" alt="Logo" className="h-full w-full object-contain" /> */}
             <div className="flex h-14 w-full items-center justify-center rounded-xl bg-white">
-              <img 
-                src="/logo.png" 
-                alt="Logo" 
-                className="h-full w-full object-contain"
-                />
             </div>
           </div>
 
