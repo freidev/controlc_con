@@ -1584,6 +1584,11 @@ export default function App() {
         <div className="text-center mb-8">
           {/* ESPAÇO PARA A LOGO — substitua por: <img src="/sua-logo.png" alt="Logo" className="h-full w-full object-contain" /> */}
           <div className="mx-auto mb-6 flex h-20 w-full max-w-72 items-center justify-center rounded-2xl bg-white shadow-lg">
+            <img 
+              src="/logo.png" 
+              alt="Logo" 
+              lassName="h-full w-full object-contain" 
+            />
           </div>
           <p className="text-lg text-slate-300">Controle de Abastecimento</p>
           <p className="text-sm text-slate-400">Sistema Corporativo de Gestão de Combustível</p>
