@@ -1587,7 +1587,7 @@ export default function App() {
             <img 
               src="/logo.png" 
               alt="Logo" 
-              className="h-12 w-auto object-contain" 
+              className="h-14 w-auto object-contain" 
             />
           </div>
           <p className="text-lg text-slate-300">Controle de Abastecimento</p>
