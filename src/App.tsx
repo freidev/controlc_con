@@ -5071,6 +5071,11 @@ export default function App() {
           <div className="border-b border-slate-800 px-5 py-5">
             {/* ESPAÇO PARA A LOGO — substitua por: <img src="/sua-logo.png" alt="Logo" className="h-full w-full object-contain" /> */}
             <div className="flex h-14 w-full items-center justify-center rounded-xl bg-white">
+              <img 
+                src="/logo.png" 
+                alt="Logo" 
+                className="h-full w-full object-contain"
+                />
             </div>
           </div>
 
