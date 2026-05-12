@@ -1587,7 +1587,7 @@ export default function App() {
             <img 
               src="/logo.png" 
               alt="Logo" 
-              lassName="h-14 w-full object-contain" 
+              lassName="h-12 w-full object-contain" 
             />
           </div>
           <p className="text-lg text-slate-300">Controle de Abastecimento</p>
