@@ -1515,11 +1515,12 @@ export default function App() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img src="/logo.png" 
+         
+          <div className="mx-auto mb-6 flex h-20 w-full max-w-72 items-center justify-center rounded-2xl bg-white shadow-lg">
+           <img src="/logo.png" 
             alt="Logo" 
             className="h-full w-full object-contain" 
             />
-          <div className="mx-auto mb-6 flex h-20 w-full max-w-72 items-center justify-center rounded-2xl bg-white shadow-lg">
           </div>
           <p className="text-lg text-slate-300">Controle de Abastecimento</p>
           <p className="text-sm text-slate-400">Sistema Corporativo de Gestão de Combustível</p>
