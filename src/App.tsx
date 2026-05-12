@@ -1583,7 +1583,7 @@ export default function App() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           {/* ESPAÇO PARA A LOGO — substitua por: <img src="/sua-logo.png" alt="Logo" className="h-full w-full object-contain" /> */}
-          <div className="mx-auto mb-6 flex h-24 w-full max-w-72 items-center justify-center rounded-2xl bg-white shadow-lg">
+          <div className="mx-auto mb-6 flex h-24 w-full max-w-80 items-center justify-center rounded-2xl bg-white shadow-lg">
             <img 
               src="/logo.png" 
               alt="Logo" 
